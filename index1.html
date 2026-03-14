@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trust Vision · Overview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page">
+  <header class="hero">
+    <div class="hero__top">
+      <div class="brand">
+        <div class="brand__logo">TV</div>
+        <div>
+          <p class="eyebrow">AI/ML · Robustness Lab</p>
+          <h1>Trust Vision</h1>
+        </div>
+      </div>
+    </div>
+    <div class="hero__primary">
+      <p class="eyebrow">Ideology</p>
+      <h2>Building trustworthy AI for SDG 3 (Health) and SDG 9 (Industry).</h2>
+      <p class="lead">
+        Tiny, invisible perturbations can flip life‑critical decisions. Trust Vision exists to expose that fragility,
+        add guardrails (attacks, defenses, CI checks, monitoring), and guide teams toward safer deployment.
+      </p>
+      <div class="grid-2 overview-grid">
+        <div>
+          <p class="eyebrow">Problem statement</p>
+          <p class="muted">
+            Standard vision models misclassify with imperceptible pixel shifts. In health, that can mis-triage patients (SDG 3);
+            in industry, faulty QC can ship defective parts (SDG 9). We need practical attack+defense workflows and
+            a way to fail builds when robustness drops.
+          </p>
+        </div>
+        <div>
+          <p class="eyebrow">What this project does</p>
+          <p class="muted">
+            Offers an interactive lab to craft adversarial examples, visualize defenses, log misclassifications,
+            and run CI guardrails on curated eval sets. Two pathways: pixel-based attacks and parameter-based attacks.
+          </p>
+        </div>
+      </div>
+      <div class="sdg-cards">
+        <div class="info stat">
+          <p class="label">SDG 3 — Good Health & Well-being</p>
+          <p class="stat-text">Retinal/medical imaging misreads can delay or misdirect care.</p>
+        </div>
+        <div class="info stat">
+          <p class="label">SDG 9 — Industry, Innovation & Infrastructure</p>
+          <p class="stat-text">Vision QC lines can pass faulty parts or halt production under adversarial noise.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="section-head">
+        <p class="step">Choose a path</p>
+        <h2>Explore adversarial risk by attack surface</h2>
+      </div>
+      <div class="card-grid-two">
+        <a class="big-card" href="index2.html">
+          <div>
+            <p class="eyebrow">Card 1</p>
+            <h3>Pixel based adversarial attack</h3>
+            <p class="muted">
+              Manipulate pixels (FGSM/PGD/CW/AutoAttack), view cert radii, defenses, and monitoring metrics.
+            </p>
+          </div>
+          <span class="cta">Open lab →</span>
+        </a>
+        <a class="big-card" href="para meter based attack/index.html">
+          <div>
+            <p class="eyebrow">Card 2</p>
+            <h3>Multimodal adversarial simulator</h3>
+            <p class="muted">
+              HTML-only vitals + X-ray simulator with sample images, synthetic vitals, and mock predictions. (Models restored in folder.)
+            </p>
+          </div>
+          <span class="cta">Explore →</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div>Trust Vision · Adversarial Robustness Lab</div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,4 @@
+sdk: docker
+port: 8000
+image: 
+  file: Dockerfile

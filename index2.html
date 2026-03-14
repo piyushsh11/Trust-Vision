@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trust Vision · Pixel-based Adversarial Lab</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body class="page">
+  <header class="hero">
+    <div class="hero__top">
+      <div class="brand">
+        <div class="brand__logo">TV</div>
+        <div>
+          <p class="eyebrow">AI/ML · Robustness Lab</p>
+          <h1>Trust Vision</h1>
+        </div>
+      </div>
+      <nav class="tabs">
+        <a class="tab" href="index1.html">← Overview</a>
+        <button class="tab active" data-tab="setup">Attack Lab</button>
+        <button class="tab" data-tab="results">Defense</button>
+        <button class="tab" data-tab="metrics">Monitoring</button>
+      </nav>
+    </div>
+    <div class="hero__grid">
+      <div class="hero__primary">
+        <p class="eyebrow">Why this demo?</p>
+        <h2>See how tiny pixel shifts can flip critical AI decisions.</h2>
+        <p class="lead">
+          Trust Vision is an adversarial lab for SDG‑aligned computer vision. We hit models with FGSM, PGD, CW, and AutoAttack,
+          then contrast clean vs. defended outputs using a TRADES/adv‑trained ResNet18 checkpoint when available. Certified L2 radii stay small
+          (~0.02–0.03), highlighting residual risk even after defenses.
+        </p>
+        <p class="lead">
+          SDG 3 (health): retinal/medical images can mis-triage patients if perturbed. SDG 9 (industry): PCB/print/industrial shots can
+          pass defective parts. The goal is to surface how brittle baselines are and what monitoring + CI guardrails you need.
+        </p>
+        <p class="muted small">
+          Pick a sample or upload your own, set ε, run an attack, and watch clean → adv → defended outputs with live metrics and drift alerts.
+        </p>
+      </div>
+      <div class="hero__side">
+        <div class="info stat">
+          <p class="label">Value Proposition</p>
+          <p class="stat-text">One-click adversarial lab + AutoAttack audit + CI guardrail + live drift alerts.</p>
+        </div>
+        <div class="info stat">
+          <p class="label">SDG Impact</p>
+          <ul class="sdg-list">
+            <li><strong>SDG 3</strong> — medical imaging misreads can mis-triage patients.</li>
+            <li><strong>SDG 9</strong> — faulty quality control can ship defective parts.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel tab-pane active" id="setup" style="border-color: var(--line); background: var(--card);">
+      <div class="section-head">
+        <p class="step">Dataset & Settings</p>
+        <h2>Configure attack</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="card tall" style="background: var(--card); border-color: var(--line);">
+          <label for="datasetSelect">Dataset</label>
+          <select id="datasetSelect">
+            <option value="set1">Industrial + retinal (Samples A–D)</option>
+            <option value="medmnist">MedMNIST (retina / derm)</option>
+            <option value="items">Items (Samples E–H, SDG3/SDG9)</option>
+          </select>
+          <div class="info" id="datasetInfo">Industrial anomalies + retinal fundus samples (static set).</div>
+          <label for="modelSelect">Model</label>
+          <select id="modelSelect">
+            <option value="classifier">Classifier (ResNet/CLIP)</option>
+            <option value="yolo">Detector (YOLOv8n)</option>
+          </select>
+          <p class="hint">Choose YOLO for multi-object bounding boxes; classifier for single-object labels and attacks.</p>
+          <label for="attackType">Adversarial attack</label>
+          <select id="attackType">
+            <option value="fgsm">FGSM (fast)</option>
+            <option value="pgd">PGD (stronger)</option>
+            <option value="cw">Carlini-Wagner (optimization)</option>
+            <option value="auto">AutoAttack (slow, robust eval)</option>
+          </select>
+          <label for="epsilon">Epsilon (0–16/255)</label>
+          <input type="range" id="epsilon" min="2" max="16" value="8">
+          <span class="hint">Current ε: <strong id="epsLabel">8/255</strong></span>
+          <div class="chips">
+            <button class="chip" data-id="stop">Sample 1</button>
+            <button class="chip" data-id="part">Sample 2</button>
+            <button class="chip" data-id="face">Sample 3</button>
+            <button class="chip" data-id="bonus">Sample 4</button>
+          </div>
+          <div class="upload-row">
+            <input type="file" id="upload" accept="image/*" hidden>
+          <button id="uploadBtn" style="background:#ffffff;">Upload your image</button>
+            <p class="hint">Images stay in your browser.</p>
+          </div>
+        </div>
+        <div class="card image-card" style="background: #ffffff; border-color: var(--line);">
+          <div class="preview" id="preview" style="background: #ffffff; border-color: var(--line);">Drop or pick an image</div>
+          <div class="metrics mini">
+            <div><span class="label">Prediction</span><strong id="predLabel">—</strong></div>
+            <div><span class="label">Confidence</span><strong id="predConf">—</strong></div>
+            <div><span class="label">Model</span><strong id="predModel">ResNet18 (ImageNet)</strong></div>
+            <div><span class="label">Cert radius (L2)</span><strong id="certRadius">—</strong></div>
+          </div>
+          <button id="attackBtn" class="primary full" style="background:#ffffff;">Generate adversarial attack</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel tab-pane" id="results" style="background: var(--card); border-color: var(--line);">
+      <div class="section-head">
+        <p class="step">Attack & Defense</p>
+        <h2>Visual compare</h2>
+      </div>
+      <div class="triple">
+        <div class="preview small" id="origAttack">Original</div>
+        <div class="preview small" id="advAttack">Adversarial</div>
+        <div class="preview small" id="heatAttack">Heatmap</div>
+      </div>
+      <div class="bar">
+        <p id="attackDetails">ε = 8/255 · FGSM</p>
+        <button id="defenseBtn">Apply defense</button>
+      </div>
+      <div class="feature-grid">
+        <div class="card image-card" style="background: var(--card); border-color: var(--line);">
+          <div class="preview" id="defenseImg" style="background: #ffffff; border-color: var(--line);">Adversarial image</div>
+        </div>
+        <div class="card metrics-card" style="background: #ffffff; border-color: var(--line);">
+          <div class="metrics grid-2">
+            <div><span class="label">Robust prediction</span><strong id="robustLabel">—</strong></div>
+            <div><span class="label">Confidence</span><strong id="robustConf">—</strong></div>
+            <div><span class="label">Defense</span><strong id="robustModel">Noise-filter + adv training</strong></div>
+            <div><span class="label">Clean acc</span><strong id="accClean">—</strong></div>
+            <div><span class="label">Adv acc</span><strong id="accAdv">—</strong></div>
+            <div><span class="label">Robust acc</span><strong id="accRobust">—</strong></div>
+            <div><span class="label">Latency</span><strong id="latency">—</strong></div>
+          </div>
+          <p class="muted small" id="explainDynamic">Higher ε increases attack success; defenses may fail.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel tab-pane" id="metrics" style="background: var(--card); border-color: var(--line);">
+      <div class="section-head">
+        <p class="step">Monitoring & CI</p>
+        <h2>Live metrics and guardrails</h2>
+      </div>
+      <div class="card full" style="background: var(--card); border-color: var(--line);">
+        <canvas id="metricsChart" height="220"></canvas>
+      </div>
+      <div class="card narrative" style="background: var(--card); border-color: var(--line);">
+        <h3>How this maps to SDGs</h3>
+        <p>
+          <strong>SDG 3 (Health):</strong> Adversarial noise on retinal or radiology images can flip disease/no-disease calls, delaying care.
+          <strong>SDG 9 (Industry/Innovation):</strong> Vision QC lines can pass faulty parts (e.g., PCB/print defects) or halt production.
+        </p>
+        <p>
+          In our demo, ε=8/255 attacks succeed frequently and certified radii are small, showing significant residual risk even with light defenses.
+          Live metrics log misclassifications and attack success; alerts fire when the rolling success rate is high—treat this as drift/vulnerability detection.
+          Use the included CI script (<code>robustness_check.py</code>) to fail builds when robust accuracy drops below your threshold.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div>Backend: FastAPI + PyTorch · Attacks: FGSM / PGD / CW / AutoAttack · Defense: denoise + adv-trained checkpoint ready</div>
+  </footer>
+</body>
+</html>
