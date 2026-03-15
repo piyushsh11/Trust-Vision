@@ -1,3 +1,12 @@
+---
+title: Trust Vision – Adversarial Robustness Lab
+emoji: 🛡️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # Trust Vision – Adversarial Robustness Lab
 
 ## Problem Statement
