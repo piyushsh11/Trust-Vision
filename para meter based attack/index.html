@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multimodal Adversarial Medical AI Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --muted: #5f6675;
+      --text: #1f2430;
+      --border: #e7ebf5;
+      --input: #f1f3f7;
+      --accent: #b8ccff;
+      --accent-dark: #9fb8ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:'Inter', system-ui, -apple-system, sans-serif; }
+    .wrap { max-width: 1180px; margin: 32px auto 72px; padding: 0 20px; display: grid; gap: 20px; }
+    h1 { font-size:48px; font-weight:800; margin:0 0 12px; line-height:1.1; }
+    h2 { font-size:32px; font-weight:700; margin:14px 0 12px; }
+    h3 { margin: 10px 0 8px; }
+    label { font-weight:600; margin-bottom:6px; display:block; }
+    select, button {
+      width:100%; padding:14px 16px; border-radius:12px; border:1px solid var(--border);
+      background:var(--input); font-size:16px; color:var(--text);
+    }
+    button { background:#ffffff; font-weight:700; cursor:pointer; transition: all .15s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+    button:hover { transform: translateY(-1px); }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:18px;
+      padding:18px 20px; box-shadow:0 10px 28px rgba(0,0,0,0.06);
+    }
+    .grid-2 { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; }
+    .grid-3 { display:grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap:14px; }
+    .status { margin-top:10px; font-size:15px; }
+    .muted { color:var(--muted); font-size:14px; }
+    #imgPane img, .heat-img { max-width:100%; height:auto; border-radius:16px; border:1px solid var(--border); display:block; }
+    .heatwrap { position: relative; }
+    .heat-overlay {
+      position:absolute; inset:0;
+      background: radial-gradient(circle at 50% 45%, rgba(255,0,0,0.35) 0%, rgba(255,165,0,0.2) 30%, rgba(255,255,0,0.1) 55%, transparent 75%);
+      mix-blend-mode: multiply;
+      border-radius:16px;
+      pointer-events:none;
+    }
+    .bars { display:grid; gap:8px; }
+    .bar-row { display:flex; align-items:center; gap:10px; }
+    .bar-label { width:140px; font-weight:600; }
+    .bar-track { flex:1; height:12px; border-radius:8px; background:var(--input); overflow:hidden; }
+    .bar-fill { height:100%; border-radius:8px; background:linear-gradient(90deg,#8fb1ff,#b8ccff); }
+    .pill { display:inline-block; padding:6px 10px; border-radius:12px; background:var(--input); border:1px solid var(--border); font-size:13px; }
+    .findings { line-height:1.6; margin:0; padding-left:18px; }
+    .table { width:100%; border-collapse: collapse; }
+    .table th, .table td { padding:10px; border:1px solid var(--border); text-align:left; }
+    .table th { background:var(--input); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <h1>Multimodal Adversarial Medical AI Simulator</h1>
+      <h2>Dataset Configuration</h2>
+    </div>
+
+    <div class="card">
+      <div class="grid-2" style="align-items:end;">
+        <div>
+          <label for="xraySel">Select X-ray Dataset</label>
+          <select id="xraySel">
+            <option>Chest X-ray 17 Diseases</option>
+          </select>
+        </div>
+        <div>
+          <label for="vitalSel">Select Vital Dataset</label>
+          <select id="vitalSel">
+            <option>VitalDB Processed</option>
+            <option>Synthetic Vitals</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <button id="genBtn">Generate Synthetic Patient Case</button>
+      </div>
+      <div class="status" id="statusText">Waiting to generate a synthetic multimodal patient…</div>
+      <div class="muted" id="pathText"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <label style="font-weight:700; margin-bottom:10px;">X-ray with Grad-CAM overlay</label>
+        <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+          <button id="viewOrig" style="width:auto; padding:8px 12px;">Original</button>
+          <button id="viewAttack" style="width:auto; padding:8px 12px;">Attacked</button>
+          <button id="viewDefend" style="width:auto; padding:8px 12px;">Defended</button>
+          <span class="muted" id="heatLegend">Showing: Original focus</span>
+        </div>
+        <div class="heatwrap" id="heatWrap">
+          <img class="heat-img" id="camImg" src="" alt="X-ray">
+          <div class="heat-overlay" id="heatOverlay"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 10px;">Disease probability</h3>
+        <div class="bars" id="barBox"></div>
+        <div style="margin-top:14px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--input);">
+          <div style="font-weight:700;" id="topPred">Top Prediction: —</div>
+          <div id="topConf" class="muted">Confidence: —</div>
+          <div id="riskLevel" class="pill" style="margin-top:6px;">Risk: —</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px;">Clinical findings (extracted)</h3>
+      <ul class="findings" id="findingsList"></ul>
+      <h3 style="margin:16px 0 8px;">Vitals support analysis</h3>
+      <ul class="findings" id="vitalSupport"></ul>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px;">Adversarial robustness comparison</h3>
+      <div class="grid-3" id="advCompare"></div>
+    </div>
+  </div>
+
+  <script>
+    const chestSamples = [
+      'chest/files/abscess/0.jpg',
+      'chest/files/pneumonia/0.jpg',
+      'chest/files/emphysema/0.jpg',
+      'chest/files/hydrothorax/0.jpg'
+    ];
+    const diseaseNames = ['Pneumonia','Cardiomegaly','Pleural Effusion','Pneumothorax','Emphysema'];
+
+    const statusEl = document.getElementById('statusText');
+    const pathEl = document.getElementById('pathText');
+    const camImg = document.getElementById('camImg');
+    const heatOverlay = document.getElementById('heatOverlay');
+    const viewOrig = document.getElementById('viewOrig');
+    const viewAttack = document.getElementById('viewAttack');
+    const viewDefend = document.getElementById('viewDefend');
+    const heatLegend = document.getElementById('heatLegend');
+    const xSel = document.getElementById('xraySel');
+    const genBtn = document.getElementById('genBtn');
+    const barBox = document.getElementById('barBox');
+    const topPredEl = document.getElementById('topPred');
+    const topConfEl = document.getElementById('topConf');
+    const riskEl = document.getElementById('riskLevel');
+    const findingsEl = document.getElementById('findingsList');
+    const vitalSupportEl = document.getElementById('vitalSupport');
+    const advCompareEl = document.getElementById('advCompare');
+
+    function pickSample() {
+      return chestSamples[Math.floor(Math.random() * chestSamples.length)];
+    }
+
+    function synthVitals() {
+      const temp = Math.round(36 + Math.random()*3.5);
+      const pulse = Math.round(70 + Math.random()*60);
+      const sbp = Math.round(100 + Math.random()*40);
+      const dbp = Math.round(60 + Math.random()*25);
+      const spo2 = Math.round(90 + Math.random()*9);
+      return { temp, pulse, sbp, dbp, spo2 };
+    }
+
+    function randomProbs() {
+      const arr = diseaseNames.map(()=> Math.random()*0.45 + 0.4); // 0.4–0.85
+      return arr;
+    }
+
+    function riskLevel(conf) {
+      if (conf > 0.8) return 'High';
+      if (conf > 0.6) return 'Moderate';
+      return 'Low';
+    }
+
+    function renderBars(probs) {
+      barBox.innerHTML = '';
+      probs.forEach((p, i)=>{
+        const row = document.createElement('div');
+        row.className='bar-row';
+        const label = document.createElement('div');
+        label.className='bar-label';
+        label.textContent = diseaseNames[i];
+        const track = document.createElement('div');
+        track.className='bar-track';
+        const fill = document.createElement('div');
+        fill.className='bar-fill';
+        fill.style.width = `${(p*100).toFixed(0)}%`;
+        track.appendChild(fill);
+        const val = document.createElement('div');
+        val.style.minWidth='48px';
+        val.textContent = p.toFixed(2);
+        row.append(label, track, val);
+        barBox.appendChild(row);
+      });
+    }
+
+    function renderFindings() {
+      const findingsPool = [
+        'Increased opacity',
+        'Pleural fluid suspected',
+        'Enlarged cardiac silhouette',
+        'Hyperinflation pattern',
+        'Lung edge separation',
+        'Basal atelectasis',
+        'Vascular congestion'
+      ];
+      const picks = findingsPool.sort(()=>0.5-Math.random()).slice(0,3);
+      findingsEl.innerHTML = picks.map(f=>`<li>${f}</li>`).join('');
+    }
+
+    function renderVitalsSupport(v) {
+      const lines = [
+        `Temperature: ${v.temp}°C → ${v.temp > 38 ? 'strong' : 'weak'} support for infection`,
+        `SpO₂: ${v.spo2}% → ${v.spo2 < 94 ? 'moderate respiratory concern' : 'stable'}`,
+        `BP: ${v.sbp}/${v.dbp} mmHg → ${v.sbp > 140 ? 'hypertensive' : 'neutral'}`,
+        `Pulse: ${v.pulse} bpm → ${v.pulse > 100 ? 'tachycardic concern' : 'mild support'}`
+      ];
+      vitalSupportEl.innerHTML = lines.map(l=>`<li>${l}</li>`).join('');
+    }
+
+    function renderAdvComparison(topLabel) {
+      const rows = [
+        { title:'Original X-ray', pred: topLabel, conf:(Math.random()*0.2+0.7).toFixed(2), heat:'origin' },
+        { title:'Attacked X-ray', pred: diseaseNames.filter(d=>d!==topLabel)[0], conf:(Math.random()*0.2+0.8).toFixed(2), heat:'attack' },
+        { title:'Defended X-ray', pred: topLabel, conf:(Math.random()*0.2+0.65).toFixed(2), heat:'defend' },
+      ];
+      advCompareEl.innerHTML = rows.map(r=>`
+        <div class="card" style="padding:14px;">
+          <div style="font-weight:700;">${r.title}</div>
+          <div class="heatwrap" style="margin-top:8px;">
+            <img class="heat-img" src="${camImg.src}" alt="${r.title}">
+            <div class="heat-overlay" style="background: radial-gradient(circle at 50% 45%, rgba(${r.heat==='attack'?255:255},${r.heat==='attack'?69:0},0,0.35) 0%, rgba(255,165,0,0.2) 30%, rgba(255,255,0,0.1) 55%, transparent 75%);"></div>
+          </div>
+          <div style="margin-top:8px;">Prediction: <strong>${r.pred}</strong></div>
+          <div class="muted">Confidence: ${r.conf}</div>
+        </div>`).join('');
+    }
+
+    function setHeatOverlay(mode='orig') {
+      const coords = {
+        orig: {x: 50, y: 45, color:'255,0,0'},
+        attack: {x: 25, y: 20, color:'255,69,0'},
+        defend: {x: 55, y: 55, color:'0,120,255'}
+      }[mode];
+      heatOverlay.style.background =
+        `radial-gradient(circle at ${coords.x}% ${coords.y}%, rgba(${coords.color},0.35) 0%, rgba(${coords.color},0.18) 30%, rgba(${coords.color},0.08) 55%, transparent 75%)`;
+      heatLegend.textContent = `Showing: ${mode === 'orig' ? 'Original focus' : mode === 'attack' ? 'Attacked focus shift' : 'Defended focus'}`;
+    }
+
+    function wireHeatButtons() {
+      viewOrig.onclick = ()=> setHeatOverlay('orig');
+      viewAttack.onclick = ()=> setHeatOverlay('attack');
+      viewDefend.onclick = ()=> setHeatOverlay('defend');
+    }
+
+    function generate() {
+      const sample = pickSample();
+      const v = synthVitals();
+      statusEl.textContent = 'Generating synthetic multimodal patient…';
+      pathEl.textContent = 'X-ray: ' + sample;
+      camImg.src = sample;
+      setHeatOverlay('orig');
+
+      const probs = randomProbs();
+      renderBars(probs);
+      const maxIdx = probs.indexOf(Math.max(...probs));
+      const topLabel = diseaseNames[maxIdx];
+      const topConf = probs[maxIdx];
+      topPredEl.textContent = `Top Prediction: ${topLabel}`;
+      topConfEl.textContent = `Confidence: ${(topConf*100).toFixed(1)}%`;
+      const rl = riskLevel(topConf);
+      riskEl.textContent = `Risk: ${rl}`;
+      riskEl.style.background = rl==='High' ? '#ffe0e0' : rl==='Moderate' ? '#fff4d6' : '#e6f4ff';
+
+      renderFindings();
+      renderVitalsSupport(v);
+      renderAdvComparison(topLabel);
+
+      statusEl.textContent = 'Synthetic multimodal patient generated successfully!';
+    }
+
+    genBtn.addEventListener('click', generate);
+    wireHeatButtons();
+    generate();
+  </script>
+</body>
+</html>
