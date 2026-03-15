@@ -129,9 +129,10 @@ async function classify(dataUrl) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: dataUrl, dataset: currentDataset, model: currentModel })
     });
+    if (!res.ok) throw new Error(`classify failed with ${res.status}`);
     const out = await res.json();
-    if (out.error) {
-      predLabel.textContent = out.error;
+    if (out.error || out.detail) {
+      predLabel.textContent = out.error || out.detail || 'Error';
       predConf.textContent = '—';
       predModel.textContent = '—';
       if (certRadius) certRadius.textContent = '—';
@@ -139,11 +140,18 @@ async function classify(dataUrl) {
     }
     const topDetection = Array.isArray(out.detections) && out.detections.length > 0 ? out.detections[0] : null;
     predLabel.textContent = topDetection ? `${topDetection.label} (${out.detections.length} objs)` : out.label;
-    predConf.textContent = `${(out.confidence * 100).toFixed(1)}%`;
-    predModel.textContent = out.model;
-    if (certRadius) certRadius.textContent = out.certified_radius_l2 != null ? `${(out.certified_radius_l2 || 0).toFixed(4)}` : '—';
+    const confVal = typeof out.confidence === 'number' ? `${(out.confidence * 100).toFixed(1)}%` : '—';
+    predConf.textContent = confVal;
+    predModel.textContent = out.model || '—';
+    if (certRadius) {
+      const rad = typeof out.certified_radius_l2 === 'number' ? out.certified_radius_l2.toFixed(4) : '—';
+      certRadius.textContent = rad;
+    }
   } catch (e) {
     predLabel.textContent = 'Backend not running';
+    predConf.textContent = '—';
+    predModel.textContent = '—';
+    if (certRadius) certRadius.textContent = '—';
     console.error(e);
   }
 }
