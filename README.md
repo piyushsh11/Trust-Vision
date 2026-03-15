@@ -80,3 +80,11 @@ graph TD
 - TRADES-robust ResNet checkpoints (Madry Lab).
 - RobustBench: curated robustness leaderboard and baselines.
 - YOLOv8 (Ultralytics) for detection; not adversarially trained by default.
+
+## Results (screenshots)
+![Homepage](results/homepage.jpg)
+![Part A](results/part_a.jpg)
+![Part A – live metrics](results/part_a_live_metrics.jpg)
+![Part A – visual compare](results/part_a_visual_compare.jpg)
+![Part B](results/part_b.jpg)
+![Part B – results](results/part_b_results.jpg)
