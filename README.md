@@ -1,57 +1,68 @@
 # Trust Vision – Adversarial Robustness Lab
 
-Unified demo with two surfaces:
-- **Pixel attack lab** (`index2.html`, FastAPI backend).
-- **Multimodal adversarial medical simulator** (`para meter based attack/index.html`) with Grad-CAM overlay, disease probability bars, findings, vitals support, and adversarial comparison.
+## Problem Statement
+Deep vision models (medical + industrial) are brittle: tiny pixel perturbations or mislabeled features can flip diagnoses/inspections, undermining safety and trust.
 
-## Project layout
-- `backend.py` – FastAPI pixel-attack API (FGSM/PGD/CW/AutoAttack, defenses, cert radii).
-- `server.py` – ASGI entrypoint: mounts API at `/api` and serves static files (all HTML/JS/CSS) from repo root.
-- `index1.html` – Overview + navigation.
-- `index2.html` – Pixel attack UI.
-- `para meter based attack/index.html` – Multimodal UI (visual/analytic only; no in-browser PyTorch).
-- `requirements.txt` – Python deps.
-- `Dockerfile`, `hf.yaml` – Deployable container spec for Hugging Face Spaces (port 8000).
-- `logs/` – runtime logs (ignored in git).
-- Large assets/datasets (ignored via `.gitignore`): checkpoints, COVID/Chest sample images, zips.
+## Possible Solutions
+- Adversarial training (FGSM/PGD/TRADES) to harden classifiers.
+- Certified robustness bounds to quantify worst-case perturbations.
+- Runtime defenses (denoising, input filtering).
+- Monitoring for drift and elevated attack-success rates.
+- Model/attack benchmarking (FGSM, PGD, CW, AutoAttack) with visualizations.
 
-## Quickstart (local, unified frontend + API)
-```bash
-cd adversarial-web-demo
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-# run unified server (serves static + /api)
-uvicorn server:app --host 0.0.0.0 --port 8000
-# open in browser:
-# http://0.0.0.0:8000/index1.html
-# http://0.0.0.0:8000/index2.html
-# http://0.0.0.0:8000/para%20meter%20based%20attack/index.html
-```
+## Our Solution
+A unified FastAPI + static web UI that:
+- Runs pixel-space attacks (FGSM/PGD/CW/AutoAttack) on a ResNet-18/CLIP classifier.
+- Shows clean vs. adversarial vs. defended images, heatmaps, and certified L2 radius.
+- Offers a multimodal demo (X-ray + vitals) to illustrate risk across modalities.
+- Ships as a single Docker image for Hugging Face Spaces (free CPU tier).
 
-If you prefer a separate static server:
-```bash
-python -m http.server 3000 --bind 0.0.0.0
-uvicorn backend:app --host 0.0.0.0 --port 8000
-```
-Update JS endpoints to point to `http://localhost:8000` if needed.
+## How Our Solution Differs
+- **End-to-end demo in one container**: attacks, defenses, UI, and static assets ship together—no external notebooks or services required.
+- **Visualization-first**: heatmaps, certified radii, and attack/defense comparisons surface failure modes quickly, not just metrics.
+- **Multimodal lens**: a lightweight X-ray + vitals demo shows robustness issues beyond single-image classifiers.
+- **No GPU dependency**: runs on free CPU tiers (HF Spaces) so teams can explore robustness without specialized hardware.
 
-## Deploy free on Hugging Face Spaces (recommended)
-1. Ensure `Dockerfile` and `hf.yaml` are in the repo root.
-2. Push to GitHub.
-3. Create a new HF Space → “Docker” → connect the repo.
-4. Build; Space exposes port 8000 from the container. Static pages are served by `server.py` and API is under `/api`.
-   - Open: `https://<your-space>.hf.space/index1.html`, `.../index2.html`, `.../para%20meter%20based%20attack/index.html`.
+## Our View
+- Robustness must be demonstrated, not assumed. We surface failure cases visually and with metrics.
+- Lightweight, reproducible demos help teams reason about risk before deploying larger models.
 
-## Notes on assets
-- Checkpoints (`*.pt/*.pth`) and large datasets are git-ignored. Keep them locally or upload to a storage bucket if needed.
-- The multimodal UI shows Grad-CAM-style overlays and synthetic vitals/predictions; wiring real Grad-CAM requires a model checkpoint + backend route.
+## How It Solves the Problem
+- **Attack surface**: Generate adversarial examples on-demand to see real misclassifications.
+- **Defense surface**: Apply simple denoise/blur defense and compare outputs.
+- **Evidence**: Heatmaps and certified radii show where and how the model is fragile.
+- **Deployment**: One-click Space deploy makes sharing and testing easy.
 
-## SDG scope
-- Primary: **SDG 3** (health) and **SDG 9** (industry/innovation).
-- SDG 4/5 are not implemented in messaging/UX.
+## Working of the Model
+1. Input image → preprocessing (resize/crop/normalize).
+2. Classifier: ResNet-18 (ImageNet weights) or CLIP ViT-B/32 zero-shot (medical/industrial labels).
+3. Optional detector: YOLOv8n for multi-object cases.
+4. Attacks: FGSM / PGD / CW / AutoAttack in pixel space.
+5. Defense: Median + Gaussian denoise, then reclassify.
+6. Metrics: attack success, rolling window alert, certified L2 radius approximation.
 
-## Next improvements (optional)
-- Add true Grad-CAM API endpoint and hook UI to it.
-- Add epsilon sweep & AutoAttack batch summary table.
-- Expose certified radius badge per sample.
-- CI guardrail: run `robustness_check.py` in CI to fail when robust acc drops.
+### “para meter based attack” (multimodal) flow
+- Static, client-side demo (no backend calls) that stitches a sample chest X-ray and synthetic vitals.
+- JavaScript randomly picks one of four sample images in `para meter based attack/chest/files/*/0.jpg` and generates vitals.
+- Renders Grad-CAM-style overlay and probability bars purely in the browser.
+
+## How the Files Are Linked (diagram)
+
+
+## Accuracy / Robustness Snapshot
+- Clean top-1 (ImageNet weights) ~69–71% (reference ResNet-18).
+- Certified L2 radii are small (~0.02–0.03 on demo samples): highlights fragility.
+- Defense recovers many low-ε attacks but not all; this is a *demonstration*, not a production guarantee.
+
+## Reference Papers
+- Goodfellow et al., “Explaining and Harnessing Adversarial Examples” (FGSM).
+- Madry et al., “Towards Deep Learning Models Resistant to Adversarial Attacks” (PGD/TRADES).
+- Carlini & Wagner, “Towards Evaluating the Robustness of Neural Networks” (CW).
+- Croce & Hein, “Reliable Evaluation of Adversarial Robustness with AutoAttack.”
+
+## Similar/Public Models & Tooling
+- TRADES-robust ResNet checkpoints (Madry Lab).
+- RobustBench: curated robustness leaderboard and baselines.
+- YOLOv8 (Ultralytics) for detection; not adversarially trained by default.
+
+##Images :
