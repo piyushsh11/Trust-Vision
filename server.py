@@ -23,3 +23,8 @@ def root():
     # default to overview page
     return FileResponse("index1.html")
 
+
+@app.get("/healthz")
+def healthcheck():
+    """Lightweight health endpoint for Render/uptime checks."""
+    return {"status": "ok"}
