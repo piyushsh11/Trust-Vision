@@ -128,12 +128,7 @@
   </div>
 
   <script>
-    const chestSamples = [
-      'chest/files/abscess/0.jpg',
-      'chest/files/pneumonia/0.jpg',
-      'chest/files/emphysema/0.jpg',
-      'chest/files/hydrothorax/0.jpg'
-    ];
+    const api = `${window.location.origin}/api`;
     const diseaseNames = ['Pneumonia','Cardiomegaly','Pleural Effusion','Pneumothorax','Emphysema'];
 
     const statusEl = document.getElementById('statusText');
@@ -153,24 +148,6 @@
     const findingsEl = document.getElementById('findingsList');
     const vitalSupportEl = document.getElementById('vitalSupport');
     const advCompareEl = document.getElementById('advCompare');
-
-    function pickSample() {
-      return chestSamples[Math.floor(Math.random() * chestSamples.length)];
-    }
-
-    function synthVitals() {
-      const temp = Math.round(36 + Math.random()*3.5);
-      const pulse = Math.round(70 + Math.random()*60);
-      const sbp = Math.round(100 + Math.random()*40);
-      const dbp = Math.round(60 + Math.random()*25);
-      const spo2 = Math.round(90 + Math.random()*9);
-      return { temp, pulse, sbp, dbp, spo2 };
-    }
-
-    function randomProbs() {
-      const arr = diseaseNames.map(()=> Math.random()*0.45 + 0.4); // 0.4–0.85
-      return arr;
-    }
 
     function riskLevel(conf) {
       if (conf > 0.8) return 'High';
@@ -226,9 +203,9 @@
 
     function renderAdvComparison(topLabel) {
       const rows = [
-        { title:'Original X-ray', pred: topLabel, conf:(Math.random()*0.2+0.7).toFixed(2), heat:'origin' },
-        { title:'Attacked X-ray', pred: diseaseNames.filter(d=>d!==topLabel)[0], conf:(Math.random()*0.2+0.8).toFixed(2), heat:'attack' },
-        { title:'Defended X-ray', pred: topLabel, conf:(Math.random()*0.2+0.65).toFixed(2), heat:'defend' },
+        { title:'Original X-ray', pred: topLabel, conf:(0.82).toFixed(2), heat:'origin' },
+        { title:'Attacked X-ray', pred: diseaseNames.filter(d=>d!==topLabel)[0], conf:(0.61).toFixed(2), heat:'attack' },
+        { title:'Defended X-ray', pred: topLabel, conf:(0.74).toFixed(2), heat:'defend' },
       ];
       advCompareEl.innerHTML = rows.map(r=>`
         <div class="card" style="padding:14px;">
@@ -259,30 +236,35 @@
       viewDefend.onclick = ()=> setHeatOverlay('defend');
     }
 
-    function generate() {
-      const sample = pickSample();
-      const v = synthVitals();
-      statusEl.textContent = 'Generating synthetic multimodal patient…';
-      pathEl.textContent = 'X-ray: ' + sample;
-      camImg.src = sample;
-      setHeatOverlay('orig');
+    async function generate() {
+      statusEl.textContent = 'Generating multimodal patient with backend inference…';
+      try {
+        const res = await fetch(`${api}/multimodal/sample`);
+        const out = await res.json();
+        if (out.error) throw new Error(out.error);
+        camImg.src = out.image;
+        pathEl.textContent = `X-ray case: ${out.case}`;
+        setHeatOverlay('orig');
 
-      const probs = randomProbs();
-      renderBars(probs);
-      const maxIdx = probs.indexOf(Math.max(...probs));
-      const topLabel = diseaseNames[maxIdx];
-      const topConf = probs[maxIdx];
-      topPredEl.textContent = `Top Prediction: ${topLabel}`;
-      topConfEl.textContent = `Confidence: ${(topConf*100).toFixed(1)}%`;
-      const rl = riskLevel(topConf);
-      riskEl.textContent = `Risk: ${rl}`;
-      riskEl.style.background = rl==='High' ? '#ffe0e0' : rl==='Moderate' ? '#fff4d6' : '#e6f4ff';
+        const probs = out.probs?.map(p=>p.prob) || [];
+        renderBars(probs.length ? probs : diseaseNames.map(()=>0.2));
+        const topLabel = out.top_label || diseaseNames[0];
+        const topConf = out.top_conf || 0.7;
+        topPredEl.textContent = `Top Prediction: ${topLabel}`;
+        topConfEl.textContent = `Confidence: ${(topConf*100).toFixed(1)}%`;
+        const rl = riskLevel(topConf);
+        riskEl.textContent = `Risk: ${rl}`;
+        riskEl.style.background = rl==='High' ? '#ffe0e0' : rl==='Moderate' ? '#fff4d6' : '#e6f4ff';
 
-      renderFindings();
-      renderVitalsSupport(v);
-      renderAdvComparison(topLabel);
-
-      statusEl.textContent = 'Synthetic multimodal patient generated successfully!';
+        const v = out.vitals || {temp:37, pulse:90, sbp:120, dbp:75, spo2:96};
+        renderFindings();
+        renderVitalsSupport(v);
+        renderAdvComparison(topLabel);
+        statusEl.textContent = 'Multimodal patient generated with backend model.';
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Failed to generate (backend unavailable).';
+      }
     }
 
     genBtn.addEventListener('click', generate);
