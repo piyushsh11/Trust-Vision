@@ -1,4 +1,7 @@
-const api = 'http://localhost:8000';
+// Backend base: use HF Space when hosted on GitHub Pages, fallback to same-origin/local.
+const PROD_API = 'https://piyushsh11-trust-vision-robustness.hf.space/api';
+const DEFAULT_API = `${window.location.origin}/api`;
+const api = window.location.host.includes('github.io') ? PROD_API : DEFAULT_API;
 
 const datasetSelect = document.getElementById('datasetSelect');
 const modelSelect = document.getElementById('modelSelect');
