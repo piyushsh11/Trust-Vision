@@ -54,7 +54,7 @@ graph TD
     A["index1.html / index2.html"] --> G["styles.css & script.js"]
     H["para meter based attack/index.html"] --> I["chest/files/*/0.jpg (4 sample X-rays)"]
   end
-  subgraph Backend (FastAPI)
+  subgraph Backend_FastAPI
     B["server.py (ASGI)"] --> C["backend.py (routes)"]
     C --> D["ResNet-18 / CLIP models"]
     C --> E["YOLOv8n (optional)"]
