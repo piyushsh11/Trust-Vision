@@ -128,9 +128,8 @@
   </div>
 
   <script>
-    // Render deployment base URL (update if Render assigns a different host name)
-    const PROD_API = 'https://trust-vision.onrender.com/api';
-    const api = window.location.host.includes('github.io') ? PROD_API : `${window.location.origin}/api`;
+    // Local-first backend: always point UI to your locally running server.
+    const api = 'http://localhost:8000/api';
     const diseaseNames = ['Pneumonia','Cardiomegaly','Pleural Effusion','Pneumothorax','Emphysema'];
 
     const statusEl = document.getElementById('statusText');

@@ -1,8 +1,6 @@
-// Backend base: use HF Space when hosted on GitHub Pages, fallback to same-origin/local.
-// Render deployment base URL (update if Render assigns a different host name)
-const PROD_API = 'https://trust-vision.onrender.com/api';
-const DEFAULT_API = `${window.location.origin}/api`;
-const api = window.location.host.includes('github.io') ? PROD_API : DEFAULT_API;
+// Local-first backend: always point UI to your locally running server.
+// If you want to switch to a remote backend, change this line only.
+const api = 'http://localhost:8000/api';
 
 const datasetSelect = document.getElementById('datasetSelect');
 const modelSelect = document.getElementById('modelSelect');
